@@ -237,6 +237,33 @@
       .banner h2 { font-family: Georgia, serif; margin: 0 0 6px; font-size: 1.6rem; }
       .banner p { margin: 0 0 14px; color: var(--muted); }
       .banner button { background: var(--gold); border-color: #8a6206; color: #fffbe9; font-weight: 700; padding: 12px 26px; }
+      .banner button.alt { background: var(--panel); border-color: var(--line); color: var(--ink); margin-left: 8px; }
+
+      .startpanel {
+        background: var(--panel); border: 2px solid var(--gold); border-radius: 14px;
+        padding: 20px 16px; text-align: center; margin-bottom: 16px;
+        box-shadow: 0 4px 14px var(--shadow);
+      }
+      .startpanel h2 { font-family: Georgia, serif; margin: 0 0 6px; font-size: 1.45rem; }
+      .startpanel p { margin: 0 0 14px; color: var(--muted); }
+      .modebtns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+      .modebtns button { flex: 1 1 180px; max-width: 280px; font-size: 1.15rem; font-weight: 800; padding: 14px 16px; }
+      #cpuModeBtn { background: var(--gold); border-color: #8a6206; color: #fffbe9; }
+      #twoModeBtn { background: var(--felt); border-color: var(--felt-deep); color: #f4f1df; }
+      .modesub { display: block; font-size: 0.82rem; font-weight: 600; opacity: 0.88; margin-top: 4px; }
+      .startpanel .modehint { margin: 12px 0 0; font-size: 0.9rem; }
+      .wrap:not(.pre-start) #startPanel { display: none; }
+      .wrap.pre-start .scoreboard, .wrap.pre-start .sharebar, .wrap.pre-start .table,
+      .wrap.pre-start .message, .wrap.pre-start .controls { display: none; }
+
+      .wrap.two-player #battleBtn, .wrap.two-player #autoBtn { display: none; }
+      .wrap.two-player .side-info { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      .deckstack.turn {
+        outline: 3px solid var(--gold-bright); outline-offset: 3px; border-radius: 9px;
+        animation: turnPulse 1.1s ease-in-out infinite;
+      }
+      @keyframes turnPulse { 0%, 100% { outline-offset: 3px; } 50% { outline-offset: 6px; } }
+      @media (prefers-reduced-motion: reduce) { .deckstack.turn { animation: none; } }
 
       .rules {
         margin-top: 26px; background: var(--panel); border: 1px solid var(--line);
@@ -249,7 +276,7 @@
     </style>
   </head>
   <body>
-    <div class="wrap">
+    <div class="wrap pre-start" id="wrap">
       <div class="topbar">
         <a class="home-pill" href="https://jesuslovestyler.com/">⌂ Home</a>
         <div class="record" id="record">Games won <strong>0</strong> · lost <strong>0</strong></div>
@@ -258,17 +285,27 @@
       <h1>Capture the Deck</h1>
       <p class="tagline">The classic card game of War, renamed: the higher card takes the pile, and the goal is to capture all 54 cards. <strong>Jokers beat everything — even Aces.</strong></p>
 
+      <div class="startpanel" id="startPanel">
+        <h2>How do you want to play?</h2>
+        <p>Battle Rex, the computer — or pass and play with a friend on this one device.</p>
+        <div class="modebtns">
+          <button id="cpuModeBtn" type="button">Vs Computer<span class="modesub" id="cpuTally">Games won 0 · lost 0</span></button>
+          <button id="twoModeBtn" type="button">2 Players<span class="modesub" id="twoTally">Player 1 wins 0 · Player 2 wins 0</span></button>
+        </div>
+        <p class="modehint">In 2 Players, each of you taps your own pile to flip — Player 1 first, then Player 2. Ties mean war, same as always: tap to stake your face-down cards, tap again to flip the decider.</p>
+      </div>
+
       <div class="scoreboard" aria-label="Score">
-        <div class="score you"><span class="who">You</span><span class="num" id="youCount">27</span></div>
+        <div class="score you"><span class="who" id="youWho">You</span><span class="num" id="youCount">27</span></div>
         <div class="score battles"><span class="who">Battle</span><span class="num" id="battleCount">0</span></div>
-        <div class="score rex"><span class="who">Rex</span><span class="num" id="rexCount">27</span></div>
+        <div class="score rex"><span class="who" id="rexWho">Rex</span><span class="num" id="rexCount">27</span></div>
       </div>
       <div class="sharebar" aria-hidden="true"><div class="you" id="shareYou" style="width:50%"></div><div class="rex" id="shareRex" style="width:50%"></div></div>
 
       <section class="table" aria-label="Card table">
         <div class="zone">
-          <div class="side-info">
-            <span class="name">Rex</span>
+          <div class="side-info" id="rexSide">
+            <span class="name" id="rexName">Rex</span>
             <div class="deckstack" id="rexDeckStack">
               <div class="backcard l2"></div>
               <div class="backcard l1"></div>
@@ -284,8 +321,8 @@
         </div>
 
         <div class="zone">
-          <div class="side-info">
-            <span class="name">You</span>
+          <div class="side-info" id="youSide">
+            <span class="name" id="youName">You</span>
             <div class="deckstack" id="youDeckStack">
               <div class="backcard l2"></div>
               <div class="backcard l1"></div>
@@ -303,12 +340,14 @@
         <button id="autoBtn" type="button" aria-pressed="false">Auto: Off</button>
         <button id="soundBtn" type="button" aria-pressed="true">Sound: On</button>
         <button id="newBtn" type="button">New game</button>
+        <button id="menuBtn" type="button">Change mode</button>
       </div>
 
       <div class="banner" id="banner" hidden>
         <h2 id="bannerTitle">You captured the whole deck!</h2>
         <p id="bannerText"></p>
         <button id="againBtn" type="button">Play again</button>
+        <button id="bannerModeBtn" class="alt" type="button">Change mode</button>
       </div>
 
       <section class="rules">
@@ -320,6 +359,7 @@
           <li><strong>War:</strong> on a tie, each side stakes 3 cards face down and flips one more — the higher decider takes the <em>entire</em> pile. Ties can chain into double and triple wars.</li>
           <li>Short on cards for a war? You stake what you have and your last card becomes the decider. If you can't flip a card at all, you lose the game.</li>
           <li>First side to hold all 54 cards wins. War can run long — flip on <strong>Auto</strong> and let it ride.</li>
+          <li><strong>Two players:</strong> choose <strong>2 Players</strong> at the start to pass and play on one device. Player 1 taps their own pile to flip, then Player 2 taps theirs — and in a war, each player taps to lay their face-down cards and taps again to flip the decider.</li>
         </ul>
       </section>
     </div>
@@ -379,8 +419,12 @@
         var state = {
           you: [], rex: [], pile: [], view: [],
           battles: 0, over: false, busy: false,
-          auto: false, sound: true, recorded: false, result: null
+          auto: false, sound: true, recorded: false, result: null,
+          mode: "cpu", started: false, phase: "idle"
         };
+
+        /* 2-player turn state: whose tap is expected, and the cards in play */
+        var g2 = { yc: null, rc: null, war: false, yStake: 0, rStake: 0 };
 
         function $(id) { return document.getElementById(id); }
         var els = {
@@ -393,7 +437,14 @@
           message: $("message"), battleBtn: $("battleBtn"), autoBtn: $("autoBtn"),
           soundBtn: $("soundBtn"), newBtn: $("newBtn"),
           banner: $("banner"), bannerTitle: $("bannerTitle"), bannerText: $("bannerText"),
-          againBtn: $("againBtn"), record: $("record")
+          againBtn: $("againBtn"), record: $("record"),
+          wrap: $("wrap"), startPanel: $("startPanel"),
+          cpuModeBtn: $("cpuModeBtn"), twoModeBtn: $("twoModeBtn"),
+          cpuTally: $("cpuTally"), twoTally: $("twoTally"),
+          menuBtn: $("menuBtn"), bannerModeBtn: $("bannerModeBtn"),
+          youWho: $("youWho"), rexWho: $("rexWho"),
+          youName: $("youName"), rexName: $("rexName"),
+          youSide: $("youSide"), rexSide: $("rexSide")
         };
 
         /* ---------- sound (Web Audio, soft) ---------- */
@@ -433,8 +484,17 @@
         /* ---------- record (localStorage) ---------- */
         function lsGet(k) { try { return parseInt(localStorage.getItem(k) || "0", 10) || 0; } catch (e) { return 0; } }
         function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+        function renderTallies() {
+          els.cpuTally.textContent = "Games won " + lsGet("ctd_won") + " · lost " + lsGet("ctd_lost");
+          els.twoTally.textContent = "Player 1 wins " + lsGet("ctd_p1_wins") + " · Player 2 wins " + lsGet("ctd_p2_wins");
+        }
         function renderRecord() {
-          els.record.innerHTML = "Games won <strong>" + lsGet("ctd_won") + "</strong> · lost <strong>" + lsGet("ctd_lost") + "</strong>";
+          renderTallies();
+          if (state.mode === "2p") {
+            els.record.innerHTML = "Player 1 wins <strong>" + lsGet("ctd_p1_wins") + "</strong> · Player 2 wins <strong>" + lsGet("ctd_p2_wins") + "</strong>";
+          } else {
+            els.record.innerHTML = "Games won <strong>" + lsGet("ctd_won") + "</strong> · lost <strong>" + lsGet("ctd_lost") + "</strong>";
+          }
         }
 
         /* ---------- rendering ---------- */
@@ -452,7 +512,10 @@
         }
         function renderSlot(el, card, isWin) {
           if (!card) {
-            el.innerHTML = '<div class="placeholder">' + (el === els.youSlot ? "Your card flips here" : "Rex's card flips here") + "</div>";
+            var label;
+            if (el === els.youSlot) label = state.mode === "2p" ? "Player 1's card flips here" : "Your card flips here";
+            else label = state.mode === "2p" ? "Player 2's card flips here" : "Rex's card flips here";
+            el.innerHTML = '<div class="placeholder">' + label + "</div>";
             return;
           }
           el.innerHTML = cardHTML(card, isWin);
@@ -494,9 +557,17 @@
         function renderAll() { renderCounts(); renderPile(false); }
         function setMessage(html) { els.message.innerHTML = html; }
         function updateControls() {
-          els.battleBtn.disabled = state.busy || state.over;
+          els.battleBtn.disabled = state.busy || state.over || !state.started;
           els.battleBtn.textContent = state.over ? "Game over" : "Battle!";
         }
+        function updateTapUI() {
+          els.youStack.classList.remove("turn");
+          els.rexStack.classList.remove("turn");
+          if (state.mode !== "2p" || !state.started || state.over || state.busy) return;
+          if (state.phase.charAt(1) === "1") els.youStack.classList.add("turn");
+          else if (state.phase.charAt(1) === "2") els.rexStack.classList.add("turn");
+        }
+        function setPhase(p) { state.phase = p; updateTapUI(); }
 
         function wait(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
 
@@ -557,7 +628,7 @@
         }
 
         async function battle() {
-          if (state.busy || state.over) return;
+          if (state.mode !== "cpu" || state.busy || state.over) return;
           if (state.you.length === 0 || state.rex.length === 0) { checkEnd(); return; }
           state.busy = true; updateControls();
           state.battles++;
@@ -614,6 +685,7 @@
         /* ---------- auto ---------- */
         var autoTimer = null;
         function setAuto(on) {
+          if (state.mode === "2p") on = false;
           state.auto = on;
           els.autoBtn.textContent = "Auto: " + (on ? "On" : "Off");
           els.autoBtn.classList.toggle("on", on);
@@ -638,11 +710,239 @@
           state.pile = []; state.view = [];
           state.battles = 0; state.over = false; state.busy = false;
           state.recorded = false; state.result = null;
+          g2.yc = null; g2.rc = null; g2.war = false; g2.yStake = 0; g2.rStake = 0;
           els.banner.hidden = true;
           renderSlot(els.youSlot, null, false);
           renderSlot(els.rexSlot, null, false);
-          setMessage("Fresh shuffle — decks split 27–27. Press Battle! — or hit Space — to flip your first cards.");
-          renderAll(); updateControls();
+          if (state.mode === "2p") {
+            setMessage("Fresh shuffle — decks split 27–27. Player 1 — tap your pile to flip the first card.");
+            state.phase = "p1flip";
+          } else {
+            setMessage("Fresh shuffle — decks split 27–27. Press Battle! — or hit Space — to flip your first cards.");
+            state.phase = "idle";
+          }
+          renderAll(); updateControls(); updateTapUI();
+        }
+
+        /* ---------- two-player pass-and-play ---------- */
+        function collect2P(winner) {
+          var yc = g2.yc, rc = g2.rc, wasWar = g2.war;
+          var n = state.pile.length;
+          var won = shuffle(state.pile.slice());
+          if (winner === "you") { state.you = state.you.concat(won); } else { state.rex = state.rex.concat(won); }
+          state.pile = []; state.view = [];
+          var wName = winner === "you" ? "Player 1" : "Player 2";
+          var lName = winner === "you" ? "Player 2" : "Player 1";
+          var wCard = winner === "you" ? yc : rc;
+          var lCard = winner === "you" ? rc : yc;
+          var msg;
+          if (wasWar) {
+            msg = wName + "'s " + wCard.name + " takes the war — " + wName + " collects <strong>all " + n + " " + plural(n) + "</strong> in the pile!";
+          } else {
+            msg = wName + "'s " + wCard.name + " beats " + lName + "'s " + lCard.name + " — " + wName + " takes " + n + " " + plural(n) + ".";
+          }
+          renderSlot(els.youSlot, yc, winner === "you");
+          renderSlot(els.rexSlot, rc, winner === "rex");
+          if (wasWar) sWarWin(); else sWin();
+          g2.war = false;
+          renderAll();
+          setMessage(msg + " Player 1 — tap your pile to flip the next card.");
+        }
+
+        function endGame2P(result) {
+          state.over = true; state.result = result; setPhase("over");
+          if (!state.recorded && result !== "draw") {
+            state.recorded = true;
+            if (result === "you") lsSet("ctd_p1_wins", lsGet("ctd_p1_wins") + 1);
+            else lsSet("ctd_p2_wins", lsGet("ctd_p2_wins") + 1);
+            renderRecord();
+          }
+          els.banner.classList.remove("lost");
+          if (result === "you") {
+            els.bannerTitle.textContent = "Player 1 captured the whole deck!";
+            els.bannerText.textContent = "All 54 cards are Player 1's after " + state.battles + " " + (state.battles === 1 ? "battle" : "battles") + ". Pass the device — rematch?";
+            setMessage("That's the game — Player 1 holds every last card, Jokers included.");
+            sWarWin();
+          } else if (result === "rex") {
+            els.bannerTitle.textContent = "Player 2 captured the whole deck!";
+            els.bannerText.textContent = "All 54 cards are Player 2's after " + state.battles + " " + (state.battles === 1 ? "battle" : "battles") + ". Pass the device — rematch?";
+            setMessage("That's the game — Player 2 holds every last card, Jokers included.");
+            sWarWin();
+          } else {
+            els.bannerTitle.textContent = "A perfect draw.";
+            els.bannerText.textContent = "Both players ran out of cards on the same war after " + state.battles + " battles. Call it even and deal again.";
+            setMessage("Neither player could flip a decider. A draw, after all that war.");
+          }
+          els.banner.hidden = false;
+          updateControls(); updateTapUI();
+        }
+
+        function checkEnd2P() {
+          if (state.you.length === 54) { endGame2P("you"); return true; }
+          if (state.rex.length === 54) { endGame2P("rex"); return true; }
+          if (state.you.length === 0 && state.rex.length > 0) { endGame2P("rex"); return true; }
+          if (state.rex.length === 0 && state.you.length > 0) { endGame2P("you"); return true; }
+          return false;
+        }
+
+        async function compare2P() {
+          if (state.mode !== "2p" || !state.started) return;
+          var yc = g2.yc, rc = g2.rc;
+          if (yc.rank !== rc.rank) {
+            collect2P(yc.rank > rc.rank ? "you" : "rex");
+            state.busy = false; updateControls();
+            if (!checkEnd2P()) setPhase("p1flip");
+            return;
+          }
+          /* tie -> WAR: same rules as the computer game, but each step waits for a tap */
+          g2.war = true;
+          setMessage('Tie — both ' + rankLabel(yc.rank) + 's. <span class="war-word">WAR!</span>');
+          tone(160, 110, 0, 0.22, "triangle", 0.05);
+          await wait(980);
+          if (state.mode !== "2p" || !state.started || state.over) return;
+
+          if (state.you.length === 0 || state.rex.length === 0) {
+            state.busy = false; updateControls();
+            if (state.you.length === 0 && state.rex.length === 0) { endGame2P("draw"); return; }
+            collect2P(state.you.length > 0 ? "you" : "rex");
+            if (!checkEnd2P()) setPhase("p1flip");
+            return;
+          }
+          g2.yStake = Math.min(3, state.you.length - 1);
+          g2.rStake = Math.min(3, state.rex.length - 1);
+          state.busy = false; updateControls();
+          if (g2.yStake > 0) {
+            setPhase("p1stake");
+            setMessage('<span class="war-word">WAR!</span> Player 1 — tap your pile to lay ' + g2.yStake + " " + plural(g2.yStake) + " face down.");
+          } else if (g2.rStake > 0) {
+            setPhase("p2stake");
+            setMessage('<span class="war-word">WAR!</span> Player 1 has no cards to spare. Player 2 — tap your pile to lay ' + g2.rStake + " " + plural(g2.rStake) + " face down.");
+          } else {
+            setPhase("p1decide");
+            setMessage('<span class="war-word">WAR!</span> No cards to spare — Player 1, tap your pile to flip the deciding card.');
+          }
+        }
+
+        function stepFlip(side) {
+          var card;
+          if (side === "you") {
+            state.battles++;
+            g2.war = false; g2.yc = null; g2.rc = null;
+            card = state.you.shift(); g2.yc = card;
+            state.pile.push(card);
+            state.view.push({ c: card, up: true });
+            renderSlot(els.youSlot, card, false);
+            sFlip(); renderAll();
+            setMessage("Player 1 flips the " + card.name + ". Player 2 — tap your pile to flip your card.");
+            setPhase("p2flip");
+          } else {
+            card = state.rex.shift(); g2.rc = card;
+            state.pile.push(card);
+            state.view.push({ c: card, up: true });
+            renderSlot(els.rexSlot, card, false);
+            sFlip(); renderAll();
+            setMessage("Player 2 flips the " + card.name + ".");
+            state.busy = true; setPhase("anim"); updateControls();
+            wait(720).then(compare2P);
+          }
+        }
+
+        function stepStake(side) {
+          var n = side === "you" ? g2.yStake : g2.rStake;
+          var deck = side === "you" ? state.you : state.rex;
+          for (var i = 0; i < n; i++) {
+            var c = deck.shift();
+            state.pile.push(c);
+            state.view.push({ c: c, up: false });
+          }
+          renderPile(true); renderCounts(); sStake();
+          if (side === "you") {
+            if (g2.rStake > 0) {
+              setPhase("p2stake");
+              setMessage("Player 1 lays " + n + " down. Player 2 — tap your pile to lay " + g2.rStake + " " + plural(g2.rStake) + " face down.");
+            } else {
+              setPhase("p1decide");
+              setMessage("Player 2 has no cards to spare. Player 1 — tap your pile to flip the deciding card.");
+            }
+          } else {
+            setPhase("p1decide");
+            setMessage("Player 2 lays " + n + " down. Player 1 — tap your pile to flip the deciding card.");
+          }
+        }
+
+        function stepDecide(side) {
+          var card;
+          if (side === "you") {
+            card = state.you.shift(); g2.yc = card;
+            state.pile.push(card);
+            state.view.push({ c: card, up: true });
+            renderSlot(els.youSlot, card, false);
+            sFlip(); renderAll();
+            setMessage("Player 1's decider: the " + card.name + ". Player 2 — tap your pile to flip your decider.");
+            setPhase("p2decide");
+          } else {
+            card = state.rex.shift(); g2.rc = card;
+            state.pile.push(card);
+            state.view.push({ c: card, up: true });
+            renderSlot(els.rexSlot, card, false);
+            sFlip(); renderAll();
+            setMessage("Player 2's decider: the " + card.name + ".");
+            state.busy = true; setPhase("anim"); updateControls();
+            wait(720).then(compare2P);
+          }
+        }
+
+        function tapSide(side) {
+          if (state.mode !== "2p" || !state.started || state.over || state.busy) return;
+          var ph = state.phase;
+          if (ph === "p1flip" && side === "you") stepFlip("you");
+          else if (ph === "p2flip" && side === "rex") stepFlip("rex");
+          else if (ph === "p1stake" && side === "you") stepStake("you");
+          else if (ph === "p2stake" && side === "rex") stepStake("rex");
+          else if (ph === "p1decide" && side === "you") stepDecide("you");
+          else if (ph === "p2decide" && side === "rex") stepDecide("rex");
+          /* any other tap is out of turn: nothing happens */
+        }
+
+        /* ---------- mode selection ---------- */
+        function applyModeUI() {
+          var two = state.mode === "2p";
+          els.wrap.classList.toggle("two-player", two);
+          els.youWho.textContent = two ? "Player 1" : "You";
+          els.rexWho.textContent = two ? "Player 2" : "Rex";
+          els.youName.textContent = two ? "Player 1" : "You";
+          els.rexName.textContent = two ? "Player 2" : "Rex";
+          els.againBtn.textContent = two ? "Rematch" : "Play again";
+          var sides = [[els.youSide, "Player 1"], [els.rexSide, "Player 2"]];
+          for (var i = 0; i < sides.length; i++) {
+            if (two) {
+              sides[i][0].setAttribute("role", "button");
+              sides[i][0].setAttribute("tabindex", "0");
+              sides[i][0].setAttribute("aria-label", sides[i][1] + "'s pile — tap to play your card");
+            } else {
+              sides[i][0].removeAttribute("role");
+              sides[i][0].removeAttribute("tabindex");
+              sides[i][0].removeAttribute("aria-label");
+            }
+          }
+          renderRecord();
+          updateTapUI();
+        }
+
+        function startMode(m) {
+          state.mode = m;
+          applyModeUI();
+          state.started = true;
+          els.wrap.classList.remove("pre-start");
+          newGame();
+        }
+
+        function backToStart() {
+          setAuto(false);
+          state.started = false;
+          els.wrap.classList.add("pre-start");
+          renderTallies();
+          window.scrollTo(0, 0);
         }
 
         /* ---------- controls ---------- */
@@ -657,10 +957,26 @@
         });
         els.newBtn.addEventListener("click", function () { this.blur(); newGame(); });
         els.againBtn.addEventListener("click", function () { this.blur(); newGame(); });
+        els.cpuModeBtn.addEventListener("click", function () { this.blur(); startMode("cpu"); });
+        els.twoModeBtn.addEventListener("click", function () { this.blur(); startMode("2p"); });
+        els.menuBtn.addEventListener("click", function () { this.blur(); backToStart(); });
+        els.bannerModeBtn.addEventListener("click", function () { this.blur(); backToStart(); });
+        els.youSide.addEventListener("click", function () { tapSide("you"); });
+        els.rexSide.addEventListener("click", function () { tapSide("rex"); });
+        function sideKey(side) {
+          return function (e) {
+            if (state.mode === "2p" && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              tapSide(side);
+            }
+          };
+        }
+        els.youSide.addEventListener("keydown", sideKey("you"));
+        els.rexSide.addEventListener("keydown", sideKey("rex"));
         document.addEventListener("keydown", function (e) {
           if (e.code === "Space" && !e.repeat) {
             e.preventDefault();
-            battle();
+            if (state.mode === "cpu" && state.started) battle();
           }
         });
 
@@ -670,6 +986,9 @@
           battle: battle,
           newGame: newGame,
           setAuto: setAuto,
+          startMode: startMode,
+          backToStart: backToStart,
+          tap: tapSide,
           mk: makeCard,
           setDecks: function (youArr, rexArr) {
             setAuto(false);
@@ -677,10 +996,15 @@
             state.pile = []; state.view = [];
             state.battles = 0; state.over = false; state.busy = false;
             state.recorded = false; state.result = null;
+            g2.yc = null; g2.rc = null; g2.war = false; g2.yStake = 0; g2.rStake = 0;
             els.banner.hidden = true;
             renderSlot(els.youSlot, null, false);
             renderSlot(els.rexSlot, null, false);
-            renderAll(); updateControls();
+            if (state.mode === "2p") {
+              state.phase = "p1flip";
+              setMessage("Player 1 — tap your pile to flip.");
+            }
+            renderAll(); updateControls(); updateTapUI();
           }
         };
 
