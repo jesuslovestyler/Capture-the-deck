@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Capture the Deck</title>
+    <style>
+      :root {
+        --bg: #f3eee0;
+        --panel: #fffdf3;
+        --ink: #24271f;
+        --muted: #6a6d5e;
+        --line: #ddd4bd;
+        --felt: #1e5b33;
+        --felt-deep: #164528;
+        --felt-line: #2c7046;
+        --gold: #b8860b;
+        --gold-bright: #d9a821;
+        --red: #b3271e;
+        --card-face: #fffef8;
+        --card-ink: #1d1f1a;
+        --chip: #fffdf3;
+        --shadow: rgba(38, 34, 16, 0.22);
+        --cw: clamp(86px, 25vw, 118px);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131511;
+          --panel: #1f221c;
+          --ink: #edeadb;
+          --muted: #a6a894;
+          --line: #3a3e33;
+          --felt: #17512c;
+          --felt-deep: #0f3a1f;
+          --felt-line: #256b3d;
+          --gold: #d9a821;
+          --gold-bright: #eec44a;
+          --chip: #262a22;
+          --shadow: rgba(0, 0, 0, 0.5);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.45;
+        -webkit-text-size-adjust: 100%;
+      }
+      .wrap { max-width: 680px; margin: 0 auto; padding: 14px 14px 40px; }
+
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        margin-bottom: 6px;
+      }
+      .home-pill {
+        display: inline-block; text-decoration: none; color: var(--ink);
+        background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+        padding: 6px 14px; font-size: 0.92rem; font-weight: 600;
+        box-shadow: 0 1px 3px var(--shadow);
+      }
+      .home-pill:active { transform: translateY(1px); }
+      .record { font-size: 0.88rem; color: var(--muted); text-align: right; }
+      .record strong { color: var(--ink); }
+
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.9rem, 6.5vw, 2.6rem);
+        margin: 8px 0 4px; letter-spacing: 0.01em;
+      }
+      .tagline { margin: 0 0 14px; color: var(--muted); font-size: 1rem; }
+      .tagline strong { color: var(--gold); }
+
+      .scoreboard {
+        display: flex; align-items: stretch; gap: 8px; margin-bottom: 8px;
+      }
+      .score {
+        flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+        padding: 8px 10px; text-align: center;
+      }
+      .score .who { display: block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+      .score .num { display: block; font-family: Georgia, serif; font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+      .score.you .num { color: var(--gold); }
+      .score.rex .num { color: var(--red); }
+      .score.battles { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; min-width: 86px; }
+      .score.battles .num { font-size: 1.35rem; }
+
+      .sharebar {
+        display: flex; height: 10px; border-radius: 999px; overflow: hidden;
+        border: 1px solid var(--line); background: var(--panel); margin-bottom: 14px;
+      }
+      .sharebar .you { background: var(--gold-bright); transition: width 0.45s ease; }
+      .sharebar .rex { background: var(--red); transition: width 0.45s ease; }
+
+      .table {
+        background: radial-gradient(ellipse at 50% 38%, var(--felt) 0%, var(--felt-deep) 88%);
+        border: 1px solid var(--felt-line); border-radius: 20px;
+        padding: 16px 14px 18px; box-shadow: inset 0 0 0 4px rgba(0,0,0,0.12), 0 6px 18px var(--shadow);
+        color: #f4f1df;
+      }
+      .zone { display: flex; align-items: center; gap: 14px; }
+      .zone .side-info { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 74px; }
+      .zone .name {
+        font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.8rem;
+        background: rgba(0,0,0,0.28); padding: 3px 10px; border-radius: 999px;
+      }
+      .slot {
+        flex: 1; display: flex; justify-content: center; align-items: center; min-height: calc(var(--cw) * 1.42);
+      }
+      .slot .placeholder {
+        width: var(--cw); height: calc(var(--cw) * 1.42);
+        border: 2px dashed rgba(244,241,223,0.4); border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; text-align: center;
+        font-size: 0.78rem; color: rgba(244,241,223,0.65); padding: 6px;
+      }
+
+      .deckstack { position: relative; width: 58px; height: 82px; flex: 0 0 auto; }
+      .deckstack .backcard {
+        position: absolute; inset: 0; border-radius: 7px;
+      }
+      .deckstack .deckcount {
+        position: absolute; right: -9px; bottom: -9px; z-index: 3;
+        background: var(--chip); color: var(--ink); border: 1px solid var(--line);
+        font-weight: 700; font-size: 0.82rem; min-width: 26px; height: 26px;
+        border-radius: 999px; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 1px 4px var(--shadow); padding: 0 5px;
+      }
+      .deckstack.empty { opacity: 0.35; }
+
+      .card {
+        width: var(--cw); height: calc(var(--cw) * 1.42);
+        background: var(--card-face); color: var(--card-ink);
+        border-radius: 10px; border: 1px solid #c9c2ab;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+        position: relative; flex: 0 0 auto;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      .card.red { color: var(--red); }
+      .card .corner { position: absolute; display: flex; flex-direction: column; align-items: center; line-height: 1; }
+      .card .corner .r { font-size: calc(var(--cw) * 0.24); font-weight: 700; }
+      .card .corner .s { font-size: calc(var(--cw) * 0.2); }
+      .card .corner.tl { top: 6px; left: 7px; }
+      .card .corner.br { bottom: 6px; right: 7px; transform: rotate(180deg); }
+      .card .pip {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        font-size: calc(var(--cw) * 0.52);
+      }
+      .card.win { outline: 3px solid var(--gold-bright); outline-offset: 2px; }
+      .card.joker { background: #fdf6da; color: #7a4d00; border-color: #d9b64a; }
+      .card.joker .joker-inner {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 2px;
+      }
+      .card.joker .star { font-size: calc(var(--cw) * 0.3); color: var(--gold); line-height: 1; }
+      .card.joker .letters { display: flex; flex-direction: column; align-items: center; line-height: 1.04; font-weight: 700; font-size: calc(var(--cw) * 0.17); letter-spacing: 0.05em; }
+
+      .backcard {
+        background: #8e2320;
+        border: 1px solid #5f130f;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+        position: relative; overflow: hidden;
+      }
+      .backcard::before {
+        content: ""; position: absolute; inset: 5px; border: 2px solid rgba(255,235,200,0.75); border-radius: 5px;
+        background:
+          repeating-linear-gradient(45deg, rgba(255,235,200,0.28) 0 3px, transparent 3px 7px),
+          repeating-linear-gradient(-45deg, rgba(255,235,200,0.28) 0 3px, transparent 3px 7px);
+      }
+      .deckstack .backcard.l1 { transform: translate(0, 0); z-index: 2; }
+      .deckstack .backcard.l2 { transform: translate(-4px, -4px); z-index: 1; opacity: 0.85; }
+
+      @keyframes flipIn {
+        from { transform: rotateY(88deg) scale(0.94); opacity: 0.25; }
+        to { transform: rotateY(0deg) scale(1); opacity: 1; }
+      }
+      .card.flip { animation: flipIn 0.38s ease-out; transform-origin: center; }
+      @keyframes stakeIn {
+        from { transform: translateY(-8px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .mini.stake-in { animation: stakeIn 0.3s ease-out; }
+      @media (prefers-reduced-motion: reduce) {
+        .card.flip, .mini.stake-in { animation: none; }
+        .sharebar .you, .sharebar .rex { transition: none; }
+      }
+
+      .pilezone {
+        margin: 14px 0; padding: 10px 12px; border-radius: 12px;
+        background: rgba(0,0,0,0.22); min-height: 64px;
+      }
+      .pilezone .pile-label { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(244,241,223,0.8); margin-bottom: 6px; }
+      .pilezone .pile-label strong { color: #fff; }
+      .pilecards { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+      .mini {
+        width: 26px; height: 37px; border-radius: 4px; flex: 0 0 auto;
+        display: flex; align-items: center; justify-content: center;
+        font-family: Georgia, serif; font-weight: 700; font-size: 0.72rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+      }
+      .mini.face { background: var(--card-face); color: var(--card-ink); border: 1px solid #c9c2ab; }
+      .mini.face.red { color: var(--red); }
+      .mini.face.joker { background: #fdf6da; color: #7a4d00; border-color: #d9b64a; }
+      .mini.back {
+        background: #8e2320; border: 1px solid #5f130f; color: rgba(255,235,200,0.9); font-size: 0.6rem;
+      }
+      .pilecards .more { font-size: 0.8rem; color: rgba(244,241,223,0.85); }
+
+      .message {
+        min-height: 3.2em; margin: 14px 2px 10px; font-size: 1.06rem; text-align: center;
+      }
+      .message .war-word { color: var(--red); font-weight: 800; letter-spacing: 0.04em; }
+
+      .controls { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+      button {
+        font: inherit; cursor: pointer; border-radius: 12px; border: 1px solid var(--line);
+        background: var(--panel); color: var(--ink); padding: 11px 18px; font-weight: 600;
+        box-shadow: 0 1px 3px var(--shadow);
+      }
+      button:active { transform: translateY(1px); }
+      button:disabled { opacity: 0.5; cursor: default; transform: none; }
+      #battleBtn {
+        background: var(--gold); border-color: #8a6206; color: #fffbe9;
+        font-size: 1.3rem; font-weight: 800; padding: 14px 38px; letter-spacing: 0.02em;
+        flex: 1 1 100%; max-width: 420px;
+      }
+      #autoBtn.on { background: var(--felt); border-color: var(--felt-deep); color: #f4f1df; }
+
+      .banner {
+        margin-top: 16px; border-radius: 14px; padding: 18px 16px; text-align: center;
+        background: var(--panel); border: 2px solid var(--gold);
+        box-shadow: 0 4px 14px var(--shadow);
+      }
+      .banner.lost { border-color: var(--red); }
+      .banner h2 { font-family: Georgia, serif; margin: 0 0 6px; font-size: 1.6rem; }
+      .banner p { margin: 0 0 14px; color: var(--muted); }
+      .banner button { background: var(--gold); border-color: #8a6206; color: #fffbe9; font-weight: 700; padding: 12px 26px; }
+
+      .rules {
+        margin-top: 26px; background: var(--panel); border: 1px solid var(--line);
+        border-radius: 14px; padding: 16px 18px;
+      }
+      .rules h2 { font-family: Georgia, serif; font-size: 1.25rem; margin: 0 0 8px; }
+      .rules ul { margin: 0; padding-left: 20px; }
+      .rules li { margin-bottom: 6px; }
+      .rules .jokernote { color: var(--gold); font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <a class="home-pill" href="https://jesuslovestyler.com/">⌂ Home</a>
+        <div class="record" id="record">Games won <strong>0</strong> · lost <strong>0</strong></div>
+      </div>
+
+      <h1>Capture the Deck</h1>
+      <p class="tagline">The classic card game of War, renamed: the higher card takes the pile, and the goal is to capture all 54 cards. <strong>Jokers beat everything — even Aces.</strong></p>
+
+      <div class="scoreboard" aria-label="Score">
+        <div class="score you"><span class="who">You</span><span class="num" id="youCount">27</span></div>
+        <div class="score battles"><span class="who">Battle</span><span class="num" id="battleCount">0</span></div>
+        <div class="score rex"><span class="who">Rex</span><span class="num" id="rexCount">27</span></div>
+      </div>
+      <div class="sharebar" aria-hidden="true"><div class="you" id="shareYou" style="width:50%"></div><div class="rex" id="shareRex" style="width:50%"></div></div>
+
+      <section class="table" aria-label="Card table">
+        <div class="zone">
+          <div class="side-info">
+            <span class="name">Rex</span>
+            <div class="deckstack" id="rexDeckStack">
+              <div class="backcard l2"></div>
+              <div class="backcard l1"></div>
+              <span class="deckcount" id="rexDeckCount">27</span>
+            </div>
+          </div>
+          <div class="slot" id="rexSlot"><div class="placeholder">Rex's card flips here</div></div>
+        </div>
+
+        <div class="pilezone">
+          <div class="pile-label">The Pile — <strong id="pileCount">0 cards</strong></div>
+          <div class="pilecards" id="pileCards"><span class="more" id="pileEmpty">Nothing on the table yet. Flip a card to start.</span></div>
+        </div>
+
+        <div class="zone">
+          <div class="side-info">
+            <span class="name">You</span>
+            <div class="deckstack" id="youDeckStack">
+              <div class="backcard l2"></div>
+              <div class="backcard l1"></div>
+              <span class="deckcount" id="youDeckCount">27</span>
+            </div>
+          </div>
+          <div class="slot" id="youSlot"><div class="placeholder">Your card flips here</div></div>
+        </div>
+      </section>
+
+      <p class="message" id="message" role="status" aria-live="polite">Decks split 27–27. Press Battle! — or hit Space — to flip your first cards.</p>
+
+      <div class="controls">
+        <button id="battleBtn" type="button">Battle!</button>
+        <button id="autoBtn" type="button" aria-pressed="false">Auto: Off</button>
+        <button id="soundBtn" type="button" aria-pressed="true">Sound: On</button>
+        <button id="newBtn" type="button">New game</button>
+      </div>
+
+      <div class="banner" id="banner" hidden>
+        <h2 id="bannerTitle">You captured the whole deck!</h2>
+        <p id="bannerText"></p>
+        <button id="againBtn" type="button">Play again</button>
+      </div>
+
+      <section class="rules">
+        <h2>How to play</h2>
+        <ul>
+          <li>A 54-card deck — the standard 52 plus <span class="jokernote">two Jokers</span> — is shuffled and split evenly, 27 cards each.</li>
+          <li>Each battle, you and Rex flip your top cards. The higher card wins, and the winner tucks every card in the pile underneath their deck.</li>
+          <li>Ranks run 2 (low) through 10, Jack, Queen, King, Ace (high). Suits never matter — only rank. <span class="jokernote">Jokers beat everything, even Aces.</span> Two Jokers tie, like any other pair.</li>
+          <li><strong>War:</strong> on a tie, each side stakes 3 cards face down and flips one more — the higher decider takes the <em>entire</em> pile. Ties can chain into double and triple wars.</li>
+          <li>Short on cards for a war? You stake what you have and your last card becomes the decider. If you can't flip a card at all, you lose the game.</li>
+          <li>First side to hold all 54 cards wins. War can run long — flip on <strong>Auto</strong> and let it ride.</li>
+        </ul>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var SUITS = [
+          { sym: "♠", name: "Spades", red: false },
+          { sym: "♥", name: "Hearts", red: true },
+          { sym: "♦", name: "Diamonds", red: true },
+          { sym: "♣", name: "Clubs", red: false }
+        ];
+
+        function rankLabel(r) {
+          if (r === 15) return "Joker";
+          if (r === 14) return "Ace";
+          if (r === 13) return "King";
+          if (r === 12) return "Queen";
+          if (r === 11) return "Jack";
+          return String(r);
+        }
+        function rankShort(r) {
+          if (r === 15) return "JKR";
+          if (r === 14) return "A";
+          if (r === 13) return "K";
+          if (r === 12) return "Q";
+          if (r === 11) return "J";
+          return String(r);
+        }
+        function makeCard(rank, suitIdx) {
+          if (rank === 15) {
+            return { rank: 15, joker: true, red: suitIdx === 1, sym: "★", name: "Joker" };
+          }
+          var s = SUITS[suitIdx];
+          return { rank: rank, joker: false, red: s.red, sym: s.sym, name: rankLabel(rank) + " of " + s.name };
+        }
+        function buildDeck() {
+          var deck = [];
+          for (var si = 0; si < 4; si++) {
+            for (var r = 2; r <= 14; r++) deck.push(makeCard(r, si));
+          }
+          deck.push(makeCard(15, 0));
+          deck.push(makeCard(15, 1));
+          return deck;
+        }
+        function shuffle(arr) {
+          for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+          }
+          return arr;
+        }
+        function plural(n) { return n === 1 ? "card" : "cards"; }
+
+        var state = {
+          you: [], rex: [], pile: [], view: [],
+          battles: 0, over: false, busy: false,
+          auto: false, sound: true, recorded: false, result: null
+        };
+
+        function $(id) { return document.getElementById(id); }
+        var els = {
+          youCount: $("youCount"), rexCount: $("rexCount"), battleCount: $("battleCount"),
+          shareYou: $("shareYou"), shareRex: $("shareRex"),
+          youSlot: $("youSlot"), rexSlot: $("rexSlot"),
+          youStack: $("youDeckStack"), rexStack: $("rexDeckStack"),
+          youDeckCount: $("youDeckCount"), rexDeckCount: $("rexDeckCount"),
+          pileCount: $("pileCount"), pileCards: $("pileCards"),
+          message: $("message"), battleBtn: $("battleBtn"), autoBtn: $("autoBtn"),
+          soundBtn: $("soundBtn"), newBtn: $("newBtn"),
+          banner: $("banner"), bannerTitle: $("bannerTitle"), bannerText: $("bannerText"),
+          againBtn: $("againBtn"), record: $("record")
+        };
+
+        /* ---------- sound (Web Audio, soft) ---------- */
+        var actx = null;
+        function audio() {
+          if (!actx) {
+            try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+          }
+          if (actx && actx.state === "suspended") { actx.resume(); }
+          return actx;
+        }
+        function tone(freqA, freqB, delay, dur, type, vol) {
+          if (!state.sound) return;
+          var c = audio(); if (!c) return;
+          var t0 = c.currentTime + delay;
+          var osc = c.createOscillator(), g = c.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freqA, t0);
+          osc.frequency.exponentialRampToValueAtTime(Math.max(freqB, 1), t0 + dur);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          osc.connect(g); g.connect(c.destination);
+          osc.start(t0); osc.stop(t0 + dur + 0.05);
+        }
+        function sFlip() { tone(340, 150, 0, 0.07, "triangle", 0.05); }
+        function sStake() { tone(220, 130, 0, 0.06, "triangle", 0.04); }
+        function sWin() { tone(523, 523, 0, 0.12, "triangle", 0.045); tone(784, 784, 0.09, 0.16, "triangle", 0.045); }
+        function sWarWin() {
+          tone(392, 392, 0, 0.11, "triangle", 0.05);
+          tone(523, 523, 0.1, 0.11, "triangle", 0.05);
+          tone(659, 659, 0.2, 0.11, "triangle", 0.05);
+          tone(784, 784, 0.3, 0.2, "triangle", 0.055);
+        }
+        function sLose() { tone(196, 147, 0, 0.18, "triangle", 0.035); }
+
+        /* ---------- record (localStorage) ---------- */
+        function lsGet(k) { try { return parseInt(localStorage.getItem(k) || "0", 10) || 0; } catch (e) { return 0; } }
+        function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+        function renderRecord() {
+          els.record.innerHTML = "Games won <strong>" + lsGet("ctd_won") + "</strong> · lost <strong>" + lsGet("ctd_lost") + "</strong>";
+        }
+
+        /* ---------- rendering ---------- */
+        function cardHTML(card, isWin) {
+          if (card.joker) {
+            return '<div class="card joker flip' + (isWin ? " win" : "") + '">' +
+              '<div class="joker-inner"><div class="star">★</div>' +
+              '<div class="letters"><span>J</span><span>O</span><span>K</span><span>E</span><span>R</span></div>' +
+              '<div class="star">★</div></div></div>';
+          }
+          return '<div class="card flip' + (card.red ? " red" : "") + (isWin ? " win" : "") + '">' +
+            '<div class="corner tl"><span class="r">' + rankShort(card.rank) + '</span><span class="s">' + card.sym + '</span></div>' +
+            '<div class="pip">' + card.sym + '</div>' +
+            '<div class="corner br"><span class="r">' + rankShort(card.rank) + '</span><span class="s">' + card.sym + '</span></div></div>';
+        }
+        function renderSlot(el, card, isWin) {
+          if (!card) {
+            el.innerHTML = '<div class="placeholder">' + (el === els.youSlot ? "Your card flips here" : "Rex's card flips here") + "</div>";
+            return;
+          }
+          el.innerHTML = cardHTML(card, isWin);
+        }
+        function renderPile(animateLast) {
+          els.pileCount.textContent = state.pile.length + " " + plural(state.pile.length);
+          if (!state.view.length) {
+            els.pileCards.innerHTML = state.battles === 0
+              ? '<span class="more">Nothing on the table yet. Flip a card to start.</span>'
+              : '<span class="more">The pile is empty — the last winner took it all.</span>';
+            return;
+          }
+          var html = "", max = 16;
+          for (var i = 0; i < state.view.length && i < max; i++) {
+            var v = state.view[i];
+            var cls = "";
+            if (!v.up) cls = "mini back" + (animateLast && i >= state.view.length - 3 ? " stake-in" : "");
+            else if (v.c.joker) cls = "mini face joker";
+            else cls = "mini face" + (v.c.red ? " red" : "");
+            var txt = v.up ? (v.c.joker ? "★" : rankShort(v.c.rank)) : "✦";
+            html += '<div class="' + cls + '">' + txt + "</div>";
+          }
+          if (state.view.length > max) html += '<span class="more">+' + (state.view.length - max) + " more</span>";
+          els.pileCards.innerHTML = html;
+        }
+        function renderCounts() {
+          els.youCount.textContent = state.you.length;
+          els.rexCount.textContent = state.rex.length;
+          els.battleCount.textContent = state.battles;
+          els.youDeckCount.textContent = state.you.length;
+          els.rexDeckCount.textContent = state.rex.length;
+          els.youStack.classList.toggle("empty", state.you.length === 0);
+          els.rexStack.classList.toggle("empty", state.rex.length === 0);
+          var total = state.you.length + state.rex.length + state.pile.length;
+          var yp = total ? (state.you.length / total) * 100 : 50;
+          els.shareYou.style.width = yp + "%";
+          els.shareRex.style.width = (100 - yp) + "%";
+        }
+        function renderAll() { renderCounts(); renderPile(false); }
+        function setMessage(html) { els.message.innerHTML = html; }
+        function updateControls() {
+          els.battleBtn.disabled = state.busy || state.over;
+          els.battleBtn.textContent = state.over ? "Game over" : "Battle!";
+        }
+
+        function wait(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+
+        /* ---------- game flow ---------- */
+        function collect(winner, yc, rc, wasWar) {
+          var n = state.pile.length;
+          var won = shuffle(state.pile.slice());
+          if (winner === "you") { state.you = state.you.concat(won); } else { state.rex = state.rex.concat(won); }
+          state.pile = []; state.view = [];
+          var yName = "Your " + yc.name, rName = "Rex's " + rc.name;
+          if (wasWar) {
+            if (winner === "you") setMessage("Your " + yc.name + " takes the war — you collect <strong>all " + n + " " + plural(n) + "</strong> in the pile!");
+            else setMessage("Rex's " + rc.name + " takes the war — Rex collects <strong>all " + n + " " + plural(n) + "</strong> in the pile.");
+          } else {
+            if (winner === "you") setMessage(yName + " beats " + rName + " — you take " + n + " " + plural(n) + ".");
+            else setMessage(rName + " beats your " + yc.name + " — Rex takes " + n + " " + plural(n) + ".");
+          }
+          renderSlot(els.youSlot, yc, winner === "you");
+          renderSlot(els.rexSlot, rc, winner === "rex");
+          if (winner === "you") { if (wasWar) sWarWin(); else sWin(); } else { sLose(); }
+          renderAll();
+        }
+
+        function endGame(result) {
+          state.over = true; state.result = result; setAuto(false);
+          if (!state.recorded && result !== "draw") {
+            state.recorded = true;
+            if (result === "you") lsSet("ctd_won", lsGet("ctd_won") + 1);
+            else lsSet("ctd_lost", lsGet("ctd_lost") + 1);
+            renderRecord();
+          }
+          els.banner.classList.toggle("lost", result === "rex");
+          if (result === "you") {
+            els.bannerTitle.textContent = "You captured the whole deck!";
+            els.bannerText.textContent = "All 54 cards are yours after " + state.battles + " " + (state.battles === 1 ? "battle" : "battles") + ". Rex is cleaned out.";
+            setMessage("That's the game — every last card, Jokers included, sits in your deck.");
+            sWarWin();
+          } else if (result === "rex") {
+            els.bannerTitle.textContent = "Rex captured the whole deck.";
+            els.bannerText.textContent = "Rex holds all 54 cards after " + state.battles + " " + (state.battles === 1 ? "battle" : "battles") + ". Shuffle up and take it back.";
+            setMessage("Rex holds every card. The deck is his — this time.");
+            sLose();
+          } else {
+            els.bannerTitle.textContent = "A perfect draw.";
+            els.bannerText.textContent = "Both sides ran out of cards on the same war after " + state.battles + " battles. The pile splits the difference — call it even and deal again.";
+            setMessage("Neither side could flip a decider. A draw, after all that war.");
+          }
+          els.banner.hidden = false;
+          updateControls();
+        }
+
+        function checkEnd() {
+          if (state.you.length === 54) { endGame("you"); return true; }
+          if (state.rex.length === 54) { endGame("rex"); return true; }
+          if (state.you.length === 0 && state.rex.length > 0) { endGame("rex"); return true; }
+          if (state.rex.length === 0 && state.you.length > 0) { endGame("you"); return true; }
+          return false;
+        }
+
+        async function battle() {
+          if (state.busy || state.over) return;
+          if (state.you.length === 0 || state.rex.length === 0) { checkEnd(); return; }
+          state.busy = true; updateControls();
+          state.battles++;
+
+          var yc = state.you.shift(), rc = state.rex.shift();
+          state.pile.push(yc, rc);
+          state.view.push({ c: yc, up: true }, { c: rc, up: true });
+          renderSlot(els.youSlot, yc, false);
+          renderSlot(els.rexSlot, rc, false);
+          sFlip(); renderAll();
+          await wait(720);
+
+          var wasWar = false;
+          while (true) {
+            if (yc.rank !== rc.rank) {
+              collect(yc.rank > rc.rank ? "you" : "rex", yc, rc, wasWar);
+              break;
+            }
+            /* tie -> WAR */
+            wasWar = true;
+            setMessage('Tie — both ' + rankLabel(yc.rank) + 's. <span class="war-word">WAR!</span> Three cards down each, next card decides…');
+            tone(160, 110, 0, 0.22, "triangle", 0.05);
+            await wait(980);
+
+            var youCan = state.you.length > 0, rexCan = state.rex.length > 0;
+            if (!youCan || !rexCan) {
+              if (!youCan && !rexCan) {
+                state.busy = false; endGame("draw"); return;
+              }
+              collect(youCan ? "you" : "rex", yc, rc, true);
+              break;
+            }
+            var ys = Math.min(3, state.you.length - 1);
+            var rs = Math.min(3, state.rex.length - 1);
+            var i, c;
+            for (i = 0; i < ys; i++) { c = state.you.shift(); state.pile.push(c); state.view.push({ c: c, up: false }); }
+            for (i = 0; i < rs; i++) { c = state.rex.shift(); state.pile.push(c); state.view.push({ c: c, up: false }); }
+            renderPile(true); renderCounts(); sStake();
+            await wait(780);
+
+            yc = state.you.shift(); rc = state.rex.shift();
+            state.pile.push(yc, rc);
+            state.view.push({ c: yc, up: true }, { c: rc, up: true });
+            renderSlot(els.youSlot, yc, false);
+            renderSlot(els.rexSlot, rc, false);
+            sFlip(); renderAll();
+            await wait(720);
+          }
+
+          state.busy = false; updateControls();
+          checkEnd();
+        }
+
+        /* ---------- auto ---------- */
+        var autoTimer = null;
+        function setAuto(on) {
+          state.auto = on;
+          els.autoBtn.textContent = "Auto: " + (on ? "On" : "Off");
+          els.autoBtn.classList.toggle("on", on);
+          els.autoBtn.setAttribute("aria-pressed", on ? "true" : "false");
+          if (on) {
+            if (autoTimer) clearInterval(autoTimer);
+            autoTimer = setInterval(function () {
+              if (state.auto && !state.busy && !state.over) battle();
+            }, 1200);
+            if (!state.busy && !state.over) battle();
+          } else if (autoTimer) {
+            clearInterval(autoTimer); autoTimer = null;
+          }
+        }
+
+        /* ---------- new game ---------- */
+        function newGame() {
+          setAuto(false);
+          var deck = shuffle(buildDeck());
+          state.you = deck.slice(0, 27);
+          state.rex = deck.slice(27);
+          state.pile = []; state.view = [];
+          state.battles = 0; state.over = false; state.busy = false;
+          state.recorded = false; state.result = null;
+          els.banner.hidden = true;
+          renderSlot(els.youSlot, null, false);
+          renderSlot(els.rexSlot, null, false);
+          setMessage("Fresh shuffle — decks split 27–27. Press Battle! — or hit Space — to flip your first cards.");
+          renderAll(); updateControls();
+        }
+
+        /* ---------- controls ---------- */
+        els.battleBtn.addEventListener("click", function () { this.blur(); battle(); });
+        els.autoBtn.addEventListener("click", function () { this.blur(); setAuto(!state.auto); });
+        els.soundBtn.addEventListener("click", function () {
+          this.blur();
+          state.sound = !state.sound;
+          this.textContent = "Sound: " + (state.sound ? "On" : "Off");
+          this.setAttribute("aria-pressed", state.sound ? "true" : "false");
+          if (state.sound) sFlip();
+        });
+        els.newBtn.addEventListener("click", function () { this.blur(); newGame(); });
+        els.againBtn.addEventListener("click", function () { this.blur(); newGame(); });
+        document.addEventListener("keydown", function (e) {
+          if (e.code === "Space" && !e.repeat) {
+            e.preventDefault();
+            battle();
+          }
+        });
+
+        /* ---------- test hooks (used to verify game scenarios) ---------- */
+        window.CaptureTheDeck = {
+          state: state,
+          battle: battle,
+          newGame: newGame,
+          setAuto: setAuto,
+          mk: makeCard,
+          setDecks: function (youArr, rexArr) {
+            setAuto(false);
+            state.you = youArr.slice(); state.rex = rexArr.slice();
+            state.pile = []; state.view = [];
+            state.battles = 0; state.over = false; state.busy = false;
+            state.recorded = false; state.result = null;
+            els.banner.hidden = true;
+            renderSlot(els.youSlot, null, false);
+            renderSlot(els.rexSlot, null, false);
+            renderAll(); updateControls();
+          }
+        };
+
+        renderRecord();
+        newGame();
+      })();
+    </script>
+    <script data-goatcounter="https://jesuslovestyler.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  </body>
+</html>
